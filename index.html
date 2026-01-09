@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etx-earn Admin Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0d0d0d; color: #ffffff; overflow-x: hidden; }
+        .text-accent { color: #00bfff; }
+        .bg-accent { background: linear-gradient(135deg, #00bfff, #0080ff); }
+        .input-dark { background-color: #262626; border: 1px solid #444; color: #fff; }
+        .sidebar { position: fixed; top: 0; left: 0; height: 100%; width: 260px; background: #111111; z-index: 50; transition: transform 0.3s ease; border-right: 1px solid #222; }
+        @media (max-width: 767px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } }
+        .nav-link { display: flex; align-items: center; padding: 0.75rem 1rem; margin: 0.25rem 1rem; border-radius: 0.5rem; color: #94a3b8; transition: all 0.2s; }
+        .nav-link:hover { background: #222; color: #00bfff; }
+        .nav-link.active { background: #00bfff; color: #000; font-weight: 700; box-shadow: 0 4px 12px rgba(0, 191, 255, 0.3); }
+        .card { background: #1a1a1a; border: 1px solid #282828; border-radius: 1rem; overflow: hidden; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #loader { position: fixed; inset: 0; background: #0d0d0d; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <div id="loader">
+        <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00bfff] mb-4"></div>
+        <p class="text-accent font-bold animate-pulse uppercase tracking-widest text-xs">Verifying Admin Access...</p>
+    </div>
+
+    <div id="app-container" class="hidden min-h-screen flex flex-col md:flex-row">
+        <aside class="sidebar" id="sidebar">
+            <div class="p-6 flex items-center gap-3">
+                <div class="bg-accent p-2 rounded-lg"><i data-lucide="shield-check" class="text-white w-6 h-6"></i></div>
+                <span class="text-xl font-bold text-white tracking-tighter">ETX-ADMIN</span>
+            </div>
+            <nav class="mt-4">
+                <a href="#" class="nav-link active" onclick="navigateTo('dashboard-page', 'System Overview')"><i data-lucide="pie-chart" class="w-5 h-5 mr-3"></i> Overview</a>
+                <a href="#" class="nav-link" onclick="navigateTo('users-page', 'Manage Users')"><i data-lucide="users" class="w-5 h-5 mr-3"></i> Users</a>
+                <a href="#" class="nav-link" onclick="navigateTo('withdrawals-page', 'Withdrawal Requests')"><i data-lucide="wallet" class="w-5 h-5 mr-3"></i> Withdrawals</a>
+                <a href="#" class="nav-link" onclick="navigateTo('notifications-page', 'Push Notifications')"><i data-lucide="send" class="w-5 h-5 mr-3"></i> Notifications</a>
+                <a href="#" class="nav-link" onclick="navigateTo('settings-page', 'App Settings')"><i data-lucide="settings" class="w-5 h-5 mr-3"></i> Settings</a>
+            </nav>
+        </aside>
+
+        <main class="flex-1 md:ml-[260px] bg-[#0d0d0d]">
+            <header class="md:hidden flex items-center justify-between p-4 bg-[#111] border-b border-gray-800 sticky top-0 z-40">
+                <h2 id="page-title-mobile" class="font-bold text-accent">Dashboard</h2>
+                <button id="menu-toggle" class="p-2 bg-gray-800 rounded-lg text-white" onclick="document.getElementById('sidebar').classList.toggle('show')"><i data-lucide="menu" class="w-6 h-6"></i></button>
+            </header>
+
+            <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+                <header class="hidden md:flex justify-between items-center mb-8">
+                    <div>
+                        <h1 id="desktop-page-title" class="text-3xl font-bold text-white">System Overview</h1>
+                        <p class="text-gray-500 text-sm">Real-time administration control</p>
+                    </div>
+                </header>
+
+                <div id="dashboard-page" class="page active">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div class="card p-6 border-l-4 border-l-blue-500">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Active Users</p>
+                            <h3 id="total-users" class="text-4xl font-extrabold mt-2 text-white">...</h3>
+                        </div>
+                        <div class="card p-6 border-l-4 border-l-orange-500">
+                            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest">Pending Requests</p>
+                            <h3 id="pending-withdrawals" class="text-4xl font-extrabold mt-2 text-white">...</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="users-page" class="page">
+                    <div class="card overflow-x-auto border-gray-800">
+                        <table class="w-full text-left">
+                            <thead class="bg-[#111] border-b border-gray-800">
+                                <tr>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">User</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Balance</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Status</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-gray-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="withdrawals-page" class="page">
+                    <div class="card overflow-x-auto border-gray-800">
+                        <table class="w-full text-left">
+                            <thead class="bg-[#111] border-b border-gray-800">
+                                <tr>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">User</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Amount</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Details</th>
+                                    <th class="p-4 text-gray-400 uppercase text-[10px]">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="withdrawals-table-body" class="divide-y divide-gray-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="notifications-page" class="page">
+                    <div class="max-w-xl card p-8 space-y-4">
+                        <h3 class="text-lg font-bold text-accent">Broadcast Notification</h3>
+                        <input type="text" id="notification-title" class="w-full px-4 py-3 input-dark rounded-xl outline-none" placeholder="Title">
+                        <textarea id="notification-message" rows="4" class="w-full px-4 py-3 input-dark rounded-xl outline-none" placeholder="Message..."></textarea>
+                        <button id="send-notification-btn" class="w-full bg-accent text-white font-bold py-3 rounded-xl hover:opacity-90 transition">Send To All</button>
+                    </div>
+                </div>
+
+                <div id="settings-page" class="page">
+                    <div class="max-w-2xl card p-8 space-y-6">
+                        <h3 class="text-xl font-bold border-b border-gray-800 pb-4 text-accent">App Configuration</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div><label class="text-[10px] font-bold text-gray-500 uppercase">Min. Withdrawal</label><input type="number" id="min-withdrawal" class="w-full mt-1 px-4 py-2 input-dark rounded-lg"></div>
+                            <div><label class="text-[10px] font-bold text-gray-500 uppercase">Daily Ad Limit</label><input type="number" id="daily-ad-limit" class="w-full mt-1 px-4 py-2 input-dark rounded-lg"></div>
+                            <div class="md:col-span-2"><label class="text-[10px] font-bold text-gray-500 uppercase">Payment Methods (Comma separated)</label><input type="text" id="payment-methods" class="w-full mt-1 px-4 py-2 input-dark rounded-lg"></div>
+                        </div>
+                        <button id="save-settings-btn" class="bg-accent text-white px-8 py-3 rounded-xl font-bold">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD05uCv6kAEL8t9sIs1-6L4nguJEepCCjI",
+            authDomain: "videoapp-b513d.firebaseapp.com",
+            databaseURL: "https://videoapp-b513d-default-rtdb.firebaseio.com",
+            projectId: "videoapp-b513d",
+            storageBucket: "videoapp-b513d.firebasestorage.app",
+            messagingSenderId: "437853663782",
+            appId: "1:437853663782:web:8c8c2db8942a4fd088ece7",
+            measurementId: "G-P98TQRE9GS"
+        };
+
+        // গুরুত্বপূর্ণ: এখানে আপনার UID দিন (স্ক্রিনে যা দেখাবে)
+        const ADMIN_UIDS = ["FyEUizASOtY5365CLgFKXUJuKVs1"];
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (ADMIN_UIDS.includes(user.uid)) {
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('app-container').classList.remove('hidden');
+                    initDashboard();
+                } else {
+                    document.body.innerHTML = `<div class="h-screen flex flex-col items-center justify-center bg-black text-red-500 font-bold p-10 text-center">
+                        <p class="mb-4 text-2xl">ACCESS DENIED</p>
+                        <p class="text-gray-400 text-sm">Your UID: <span class="text-white select-all">${user.uid}</span></p>
+                        <p class="mt-2 text-xs text-gray-600 italic">Copy this UID and add it to ADMIN_UIDS list in your code.</p>
+                    </div>`;
+                }
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        window.navigateTo = (pageId, title) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.getElementById('desktop-page-title').textContent = title;
+            document.getElementById('page-title-mobile').textContent = title;
+            document.getElementById('sidebar').classList.remove('show');
+        };
+
+        function initDashboard() {
+            onSnapshot(collection(db, "users"), snap => document.getElementById('total-users').textContent = snap.size);
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => 
+                document.getElementById('pending-withdrawals').textContent = snap.size);
+
+            onSnapshot(collection(db, "users"), snap => {
+                const body = document.getElementById('users-table-body');
+                body.innerHTML = '';
+                snap.forEach(docSnap => {
+                    const u = docSnap.data();
+                    body.innerHTML += `<tr class="hover:bg-gray-800/30">
+                        <td class="p-4 text-sm font-bold">${u.uid || docSnap.id}</td>
+                        <td class="p-4 text-accent font-bold">${u.balance || 0}</td>
+                        <td class="p-4"><span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold ${u.isBlocked ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500'}">${u.isBlocked ? 'Blocked' : 'Active'}</span></td>
+                        <td class="p-4 flex gap-2">
+                            <button onclick="window.toggleUserBlock('${docSnap.id}', ${u.isBlocked})" class="text-blue-400 text-xs">Toggle Block</button>
+                            <button onclick="window.deleteUser('${docSnap.id}')" class="text-red-500 text-xs">Delete</button>
+                        </td>
+                    </tr>`;
+                });
+            });
+
+            onSnapshot(query(collection(db, "withdrawals"), where("status", "==", "pending")), snap => {
+                const body = document.getElementById('withdrawals-table-body');
+                body.innerHTML = snap.empty ? '<tr><td colspan="4" class="p-4 text-center text-gray-500">No requests</td></tr>' : '';
+                snap.forEach(docSnap => {
+                    const w = docSnap.data();
+                    body.innerHTML += `<tr class="hover:bg-gray-800/30">
+                        <td class="p-4 text-white text-xs">${w.userId}</td>
+                        <td class="p-4 font-bold text-accent">${w.amount}</td>
+                        <td class="p-4 text-[10px]"><span class="text-blue-400 font-bold">${w.method}</span><br>${w.detail}</td>
+                        <td class="p-4 flex gap-2">
+                            <button onclick="window.processWithdrawal('${docSnap.id}', 'approved')" class="bg-green-500/20 text-green-500 px-2 py-1 rounded">✔</button>
+                            <button onclick="window.processWithdrawal('${docSnap.id}', 'rejected', '${w.userId}', ${w.amount})" class="bg-red-500/20 text-red-500 px-2 py-1 rounded">✖</button>
+                        </td>
+                    </tr>`;
+                });
+            });
+
+            getDoc(doc(db, "config", "main")).then(s => {
+                if(s.exists()){
+                    const d = s.data();
+                    document.getElementById('min-withdrawal').value = d.minWithdrawal || 0;
+                    document.getElementById('daily-ad-limit').value = d.dailyAdLimit || 0;
+                    document.getElementById('payment-methods').value = (d.paymentMethods || []).join(', ');
+                }
+            });
+        }
+
+        window.toggleUserBlock = async (id, status) => { if(confirm("Confirm action?")) await updateDoc(doc(db, "users", id), { isBlocked: !status }); };
+        window.deleteUser = async (id) => { if(confirm("Delete permanently?")) await deleteDoc(doc(db, "users", id)); };
+        window.processWithdrawal = async (reqId, status, uid, amt) => {
+            if(confirm(`Mark as ${status}?`)) {
+                if(status === 'rejected' && uid) {
+                    const uRef = doc(db, "users", uid);
+                    const uSnap = await getDoc(uRef);
+                    if(uSnap.exists()) await updateDoc(uRef, { balance: (uSnap.data().balance || 0) + amt });
+                }
+                await updateDoc(doc(db, "withdrawals", reqId), { status: status });
+            }
+        };
+
+        document.getElementById('save-settings-btn').onclick = async () => {
+            const data = {
+                minWithdrawal: parseInt(document.getElementById('min-withdrawal').value),
+                dailyAdLimit: parseInt(document.getElementById('daily-ad-limit').value),
+                paymentMethods: document.getElementById('payment-methods').value.split(',').map(m => m.trim())
+            };
+            await setDoc(doc(db, "config", "main"), data, {merge: true});
+            alert("Updated!");
+        };
+
+        document.getElementById('send-notification-btn').onclick = async () => {
+            const title = document.getElementById('notification-title').value;
+            const message = document.getElementById('notification-message').value;
+            if(!title || !message) return alert("Empty fields!");
+            await addDoc(collection(db, "notifications"), { title, message, createdAt: serverTimestamp() });
+            alert("Sent!");
+        };
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>
